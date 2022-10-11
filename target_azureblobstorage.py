@@ -19,12 +19,14 @@ from azure.storage.blob import BlockBlobService, AppendBlobService
 
 logger = singer.get_logger()
 
+
 def emit_state(state):
     if state is not None:
         line = json.dumps(state)
         logger.debug('Emitting state {}'.format(line))
         sys.stdout.write("{}\n".format(line))
         sys.stdout.flush()
+
 
 def flatten(d, parent_key='', sep='__'):
     items = []
@@ -35,13 +37,14 @@ def flatten(d, parent_key='', sep='__'):
         else:
             items.append((new_key, str(v) if type(v) is list else v))
     return dict(items)
-        
+
+
 def persist_lines(block_blob_service, append_blob_service, blob_container_name, lines):
     state = None
     schemas = {}
     key_properties = {}
     validators = {}
-    
+
     now = datetime.now().strftime('%Y%m%dT%H%M%S')
 
     # Loop over lines from stdin
@@ -60,7 +63,8 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
             if 'stream' not in o:
                 raise Exception("Line is missing required key 'stream': {}".format(line))
             if o['stream'] not in schemas:
-                raise Exception("A record for stream {} was encountered before a corresponding schema".format(o['stream']))
+                raise Exception(
+                    "A record for stream {} was encountered before a corresponding schema".format(o['stream']))
 
             # Get schema for this record's stream
             schema = schemas[o['stream']]
@@ -102,7 +106,7 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
         else:
             raise Exception("Unknown message type {} in message {}"
                             .format(o['type'], o))
-    
+
     return state
 
 
@@ -150,7 +154,7 @@ def main():
 
     input = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
     state = persist_lines(block_blob_service, append_blob_service, blob_container_name, input)
-        
+
     emit_state(state)
     logger.debug("Exiting normally")
 
