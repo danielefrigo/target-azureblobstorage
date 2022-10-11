@@ -60,8 +60,6 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
             logger.error("Unable to parse:\n{}".format(line))
             raise
 
-        filename = o['stream'] + '.json'
-
         if 'type' not in o:
             raise Exception("Line is missing required key 'type': {}".format(line))
         t = o['type']
@@ -83,6 +81,7 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
 
             # If the record needs to be flattened, uncomment this line
             # flattened_record = flatten(o['record'])
+            filename = o['stream'] + '.json'
             stream_path = os.path.join(parent_dir, filename)
             with open(stream_path, "w+") as file_obj:
                 file_obj.write(json.dumps(o['record']) + ',')
