@@ -47,6 +47,9 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
 
     now = datetime.now().strftime('%Y%m%dT%H%M%S')
 
+    blobs = block_blob_service.list_blobs(blob_container_name)
+    blob_names = [blob.name for blob in list(blobs)]
+
     # Loop over lines from stdin
     for line in lines:
         try:
@@ -76,9 +79,6 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
 
             # If the record needs to be flattened, uncomment this line
             flattened_record = flatten(o['record'])
-
-            blobs = block_blob_service.list_blobs(blob_container_name)
-            blob_names = [blob.name for blob in list(blobs)]
 
             filename = o['stream'] + '.json'
 
