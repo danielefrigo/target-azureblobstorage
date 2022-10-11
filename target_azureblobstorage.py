@@ -18,6 +18,7 @@ import singer
 from azure.storage.blob import BlockBlobService, AppendBlobService
 
 logger = singer.get_logger()
+USER_HOME = os.path.expanduser('~')
 
 
 def emit_state(state):
@@ -49,13 +50,13 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
 
     blobs = block_blob_service.list_blobs(blob_container_name)
     blob_names = [blob.name for blob in list(blobs)]
+    parent_dir = os.path.join(USER_HOME, blob_container_name)
 
     o = json.loads(lines[0])
     filename = o['stream'] + '.json'
-
-    if not o['stream'] + '.json' in blob_names:
-        append_blob_service.create_blob(blob_container_name, filename)
-
+    stream_path = os.path.join(
+        USER_HOME, blob_container_name, filename)
+    file_obj = open(stream_path, "w+")
 
     # Loop over lines from stdin
     for line in lines:
@@ -85,13 +86,29 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
             validators[o['stream']].validate(o['record'])
 
             # If the record needs to be flattened, uncomment this line
-            flattened_record = flatten(o['record'])
-            append_blob_service.append_blob_from_text(blob_container_name, filename, json.dumps(o['record']) + ',')
+            # flattened_record = flatten(o['record'])
+            file_obj.write(json.dumps(o['record']) + ',')
 
             state = None
         elif t == 'STATE':
             logger.debug('Setting state to {}'.format(o['value']))
             state = o['value']
+
+            # if currently_syncing == NONE upload file
+            if not state['currently_syncing'] and os.path.exists(parent_dir):
+                for _file in os.listdir(parent_dir):
+
+                    file_path = os.path.join(parent_dir, _file)
+
+                    block_blob_service.create_blob_from_path(
+                        blob_container_name,
+                        filename,
+                        file_path,
+                        content_settings=ContentSettings(
+                            content_type='application/JSON')
+                    )
+                    os.remove(file_path)
+
         elif t == 'SCHEMA':
             if 'stream' not in o:
                 raise Exception("Line is missing required key 'stream': {}".format(line))
@@ -107,6 +124,8 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
         else:
             raise Exception("Unknown message type {} in message {}"
                             .format(o['type'], o))
+
+    file_obj.close()
 
     return state
 
