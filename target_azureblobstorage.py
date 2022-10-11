@@ -83,7 +83,7 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
             # flattened_record = flatten(o['record'])
             filename = o['stream'] + '.json'
             stream_path = os.path.join(parent_dir, filename)
-            with open(stream_path, "w+") as file_obj:
+            with open(stream_path, "a") as file_obj:
                 file_obj.write(json.dumps(o['record']) + ',')
 
             state = None
