@@ -84,12 +84,26 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
             filename = o['stream'] + '.json'
             stream_path = os.path.join(parent_dir, filename)
             with open(stream_path, "a") as file_obj:
-                file_obj.write(json.dumps(o['record']) + ',')
+                file_obj.write(json.dumps(o['record']) + ',\n')
 
             state = None
         elif t == 'STATE':
             logger.debug('Setting state to {}'.format(o['value']))
             state = o['value']
+
+            if not state['currently_syncing'] and os.path.exists(parent_dir):
+                for _file in os.listdir(parent_dir):
+                    file_path = os.path.join(parent_dir, _file)
+
+                    block_blob_service.create_blob_from_path(
+                        blob_container_name,
+                        filename,
+                        file_path,
+                        content_settings=ContentSettings(
+                            content_type='application/JSON')
+                    )
+                    os.remove(file_path)
+
         elif t == 'SCHEMA':
             if 'stream' not in o:
                 raise Exception("Line is missing required key 'stream': {}".format(line))
@@ -105,19 +119,6 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
         else:
             raise Exception("Unknown message type {} in message {}"
                             .format(o['type'], o))
-
-    if os.path.exists(parent_dir):
-        for _file in os.listdir(parent_dir):
-            file_path = os.path.join(parent_dir, _file)
-
-            block_blob_service.create_blob_from_path(
-                blob_container_name,
-                filename,
-                file_path,
-                content_settings=ContentSettings(
-                    content_type='application/JSON')
-            )
-            os.remove(file_path)
 
     return state
 
