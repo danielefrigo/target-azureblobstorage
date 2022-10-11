@@ -52,16 +52,6 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
     # blob_names = [blob.name for blob in list(blobs)]
     parent_dir = os.path.join(USER_HOME, blob_container_name)
 
-    # reads first line to get filename
-    for line in lines:
-        o = json.loads(line)
-        filename = o['stream'] + '.json'
-        logger.info(f"Writing temp stream file in {parent_dir}")
-        logger.info(f"Processing stream on file {filename}")
-        stream_path = os.path.join(parent_dir, filename)
-        file_obj = open(stream_path, "w+")
-        pass
-
     # Loop over lines from stdin
     for line in lines:
         try:
@@ -69,6 +59,8 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
         except json.decoder.JSONDecodeError:
             logger.error("Unable to parse:\n{}".format(line))
             raise
+
+        filename = o['stream'] + '.json'
 
         if 'type' not in o:
             raise Exception("Line is missing required key 'type': {}".format(line))
@@ -91,7 +83,9 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
 
             # If the record needs to be flattened, uncomment this line
             # flattened_record = flatten(o['record'])
-            file_obj.write(json.dumps(o['record']) + ',')
+            stream_path = os.path.join(parent_dir, filename)
+            with open(stream_path, "w+") as file_obj:
+                file_obj.write(json.dumps(o['record']) + ',')
 
             state = None
         elif t == 'STATE':
@@ -128,8 +122,6 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
         else:
             raise Exception("Unknown message type {} in message {}"
                             .format(o['type'], o))
-
-    file_obj.close()
 
     return state
 
