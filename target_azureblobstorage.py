@@ -48,14 +48,15 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
 
     now = datetime.now().strftime('%Y%m%dT%H%M%S')
 
-    blobs = block_blob_service.list_blobs(blob_container_name)
-    blob_names = [blob.name for blob in list(blobs)]
+    # blobs = block_blob_service.list_blobs(blob_container_name)
+    # blob_names = [blob.name for blob in list(blobs)]
     parent_dir = os.path.join(USER_HOME, blob_container_name)
 
     o = json.loads(lines[0])
     filename = o['stream'] + '.json'
-    stream_path = os.path.join(
-        USER_HOME, blob_container_name, filename)
+    logger.info(f"Writing temp stream file in {parent_dir}")
+    logger.info(f"Processing stream on file {filename}")
+    stream_path = os.path.join(parent_dir, filename)
     file_obj = open(stream_path, "w+")
 
     # Loop over lines from stdin
