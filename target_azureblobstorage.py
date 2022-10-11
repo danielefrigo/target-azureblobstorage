@@ -50,6 +50,13 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
     blobs = block_blob_service.list_blobs(blob_container_name)
     blob_names = [blob.name for blob in list(blobs)]
 
+    o = json.loads(lines[0])
+    filename = o['stream'] + '.json'
+
+    if not o['stream'] + '.json' in blob_names:
+        append_blob_service.create_blob(blob_container_name, filename)
+
+
     # Loop over lines from stdin
     for line in lines:
         try:
@@ -79,12 +86,6 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
 
             # If the record needs to be flattened, uncomment this line
             flattened_record = flatten(o['record'])
-
-            filename = o['stream'] + '.json'
-
-            if not o['stream'] + '.json' in blob_names:
-                append_blob_service.create_blob(blob_container_name, filename)
-
             append_blob_service.append_blob_from_text(blob_container_name, filename, json.dumps(o['record']) + ',')
 
             state = None
