@@ -101,7 +101,7 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
                 for _file in os.listdir(parent_dir):
                     # todo gestire timestamp nel nome del file per facilitare deduplica?
                     file_path_in = os.path.join(parent_dir, _file)
-                    file_path_out = os.path.join(parent_dir, now.strftime("%Y%m%d-%H%M%S") + ".gz")
+                    file_path_out = os.path.join(parent_dir, now + ".gz")
                     with open(file_path_in, 'rb') as f_in:
                         with gzip.open(file_path_out, 'wb') as f_out:
                             shutil.copyfileobj(f_in, f_out, buffer_size=1024*1024)
