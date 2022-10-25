@@ -106,7 +106,7 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
                             shutil.copyfileobj(f_in, f_out)
                     block_blob_service.create_blob_from_path(
                         blob_container_name,
-                        _file.remove('.json') + "/" + _file + ".gz",
+                        _file.replace(".json", "") + "/" + _file + ".gz",
                         file_path_out,
                         content_settings=ContentSettings(
                             content_type='application/JSON')
