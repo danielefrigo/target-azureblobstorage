@@ -90,7 +90,9 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
             stream_path = os.path.join(parent_dir, filename)
             with open(stream_path, "a") as file_obj:
                 # todo usare json.dump al posto di dumps
-                file_obj.write(json.dumps(line_json['record']) + ',\n')
+                #file_obj.write(json.dumps(line_json['record']) + ',\n')
+                json.dump(line_json, file_obj)
+                file_obj.write(',\n')
 
             state = None
 
