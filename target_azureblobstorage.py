@@ -174,10 +174,9 @@ def main():
     block_blob_service = BlockBlobService(config.get('account_name', None), config.get('account_key', None))
 
     blob_container_name = config.get('container_name', None)
-    buffer = config.get('buffer', 1)
 
     input = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
-    state = persist_lines(block_blob_service, blob_container_name, input, buffer)
+    state = persist_lines(block_blob_service, blob_container_name, input)
 
     emit_state(state)
     logger.debug("Exiting normally")
