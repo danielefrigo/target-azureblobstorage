@@ -42,7 +42,7 @@ def flatten(d, parent_key='', sep='__'):
     return dict(items)
 
 
-def persist_lines(block_blob_service, append_blob_service, blob_container_name, lines):
+def persist_lines(block_blob_service, blob_container_name, lines):
     state = None
     schemas = {}
     key_properties = {}
@@ -50,8 +50,6 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
 
     now = datetime.now().strftime('%Y%m%dT%H%M%S')
 
-    # blobs = block_blob_service.list_blobs(blob_container_name)
-    # blob_names = [blob.name for blob in list(blobs)]
     parent_dir = os.path.join(USER_HOME, blob_container_name)
     # clean temp folder for local file creation
     shutil.rmtree(parent_dir, ignore_errors=True)
@@ -91,8 +89,8 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
             with open(stream_path, "a") as file_obj:
                 # todo usare json.dump al posto di dumps
                 #file_obj.write(json.dumps(line_json['record']) + ',\n')
-                json.dump(line_json, file_obj)
-                file_obj.write(',\n')
+                #json.dump(line_json, file_obj)
+                file_obj.write(f'{line},\n')
 
             state = None
 
@@ -175,12 +173,11 @@ def main():
 
     block_blob_service = BlockBlobService(config.get('account_name', None), config.get('account_key', None))
 
-    append_blob_service = AppendBlobService(config.get('account_name', None), config.get('account_key', None))
-
     blob_container_name = config.get('container_name', None)
+    buffer = config.get('buffer', 1)
 
     input = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
-    state = persist_lines(block_blob_service, append_blob_service, blob_container_name, input)
+    state = persist_lines(block_blob_service, blob_container_name, input, buffer)
 
     emit_state(state)
     logger.debug("Exiting normally")
