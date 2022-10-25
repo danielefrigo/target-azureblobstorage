@@ -3,6 +3,8 @@
 import argparse
 import io
 import os
+import shutil
+import gzip
 import sys
 import json
 import threading
@@ -51,74 +53,81 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
     # blobs = block_blob_service.list_blobs(blob_container_name)
     # blob_names = [blob.name for blob in list(blobs)]
     parent_dir = os.path.join(USER_HOME, blob_container_name)
+    # clean temp folder for local file creation
+    shutil.rmtree(parent_dir, ignore_errors=True)
+    os.mkdir(parent_dir)
 
     # Loop over lines from stdin
     for line in lines:
         try:
-            o = json.loads(line)
+            line_json = json.loads(line)
         except json.decoder.JSONDecodeError:
             logger.error("Unable to parse:\n{}".format(line))
             raise
 
-        if 'type' not in o:
+        if 'type' not in line_json:
             raise Exception("Line is missing required key 'type': {}".format(line))
-        t = o['type']
+        t = line_json['type']
 
         if t == 'RECORD':
-            if 'stream' not in o:
+            if 'stream' not in line_json:
                 raise Exception("Line is missing required key 'stream': {}".format(line))
-            if o['stream'] not in schemas:
+            if line_json['stream'] not in schemas:
                 raise Exception(
-                    "A record for stream {} was encountered before a corresponding schema".format(o['stream']))
+                    "A record for stream {} was encountered before a corresponding schema".format(line_json['stream']))
 
             # Get schema for this record's stream
-            schema = schemas[o['stream']]
+            schema = schemas[line_json['stream']]
 
             logger.debug('schema for this records stream {}'.format(schema))
-            logger.debug('Validate record {}'.format(o))
+            logger.debug('Validate record {}'.format(line_json))
             # Validate record
-            validators[o['stream']].validate(o['record'])
+            validators[line_json['stream']].validate(line_json['record'])
 
             # If the record needs to be flattened, uncomment this line
             # flattened_record = flatten(o['record'])
-            filename = o['stream'] + '.json'
+            filename = line_json['stream'] + '.json'
             stream_path = os.path.join(parent_dir, filename)
             with open(stream_path, "a") as file_obj:
-                file_obj.write(json.dumps(o['record']) + ',\n')
+                file_obj.write(json.dumps(line_json['record']) + ',\n')
 
             state = None
+
         elif t == 'STATE':
-            logger.debug('Setting state to {}'.format(o['value']))
-            state = o['value']
+            logger.debug('Setting state to {}'.format(line_json['value']))
+            state = line_json['value']
 
             if not state['currently_syncing'] and os.path.exists(parent_dir):
                 for _file in os.listdir(parent_dir):
-                    file_path = os.path.join(parent_dir, _file)
-
+                    file_path_in = os.path.join(parent_dir, _file)
+                    file_path_out = os.path.join(parent_dir, _file + ".gz")
+                    with open(file_path_in, 'rb') as f_in:
+                        with gzip.open(file_path_out, 'wb') as f_out:
+                            shutil.copyfileobj(f_in, f_out)
                     block_blob_service.create_blob_from_path(
                         blob_container_name,
-                        filename,
-                        file_path,
+                        line_json['stream'] + "/" + _file + ".gz",
+                        file_path_out,
                         content_settings=ContentSettings(
                             content_type='application/JSON')
                     )
                     os.remove(file_path)
 
         elif t == 'SCHEMA':
-            if 'stream' not in o:
+            if 'stream' not in line_json:
                 raise Exception("Line is missing required key 'stream': {}".format(line))
-            stream = o['stream']
-            schemas[stream] = o['schema']
-            validators[stream] = Draft4Validator(o['schema'])
-            if 'key_properties' not in o:
+            stream = line_json['stream']
+            schemas[stream] = line_json['schema']
+            validators[stream] = Draft4Validator(line_json['schema'])
+            if 'key_properties' not in line_json:
                 raise Exception("key_properties field is required")
-            key_properties[stream] = o['key_properties']
+            key_properties[stream] = line_json['key_properties']
+
         elif t == 'ACTIVATE_VERSION':
-            logger.debug("Type {} in message {}"
-                         .format(o['type'], o))
+            logger.debug("Type {} in message {}".format(line_json['type'], line_json))
+
         else:
-            raise Exception("Unknown message type {} in message {}"
-                            .format(o['type'], o))
+            raise Exception("Unknown message type {} in message {}".format(line_json['type'], line_json))
 
     return state
 
