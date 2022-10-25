@@ -111,7 +111,8 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
                         content_settings=ContentSettings(
                             content_type='application/JSON')
                     )
-                    os.remove(file_path)
+                    os.remove(file_path_in)
+                    os.remove(file_path_out)
 
         elif t == 'SCHEMA':
             if 'stream' not in line_json:
