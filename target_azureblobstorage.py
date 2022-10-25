@@ -89,6 +89,7 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
             filename = line_json['stream'] + '.json'
             stream_path = os.path.join(parent_dir, filename)
             with open(stream_path, "a") as file_obj:
+                # todo usare json.dump al posto di dumps
                 file_obj.write(json.dumps(line_json['record']) + ',\n')
 
             state = None
@@ -99,12 +100,11 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
 
             if not state['currently_syncing'] and os.path.exists(parent_dir):
                 for _file in os.listdir(parent_dir):
-                    # todo gestire timestamp nel nome del file per facilitare deduplica?
                     file_path_in = os.path.join(parent_dir, _file)
                     file_path_out = os.path.join(parent_dir, now + ".gz")
                     with open(file_path_in, 'rb') as f_in:
                         with gzip.open(file_path_out, 'wb') as f_out:
-                            shutil.copyfileobj(f_in, f_out, buffer_size=1024*1024)
+                            shutil.copyfileobj(f_in, f_out, length=1024*1024)
                     block_blob_service.create_blob_from_path(
                         blob_container_name,
                         _file.replace(".json", "") + "/" + _file + ".gz",
