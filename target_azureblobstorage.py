@@ -103,7 +103,7 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
                     file_path_out = os.path.join(parent_dir, _file + ".gz")
                     with open(file_path_in, 'rb') as f_in:
                         with gzip.open(file_path_out, 'wb') as f_out:
-                            shutil.copyfileobj(f_in, f_out)
+                            shutil.copyfileobj(f_in, f_out, buffer_size=1024*1024)
                     block_blob_service.create_blob_from_path(
                         blob_container_name,
                         _file.replace(".json", "") + "/" + _file + ".gz",
