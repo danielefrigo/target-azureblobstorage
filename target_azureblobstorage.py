@@ -100,14 +100,15 @@ def persist_lines(block_blob_service, append_blob_service, blob_container_name, 
 
             if not state['currently_syncing'] and os.path.exists(parent_dir):
                 for _file in os.listdir(parent_dir):
+                    output_file_name = now + ".gz"
                     file_path_in = os.path.join(parent_dir, _file)
-                    file_path_out = os.path.join(parent_dir, now + ".gz")
+                    file_path_out = os.path.join(parent_dir, output_file_name)
                     with open(file_path_in, 'rb') as f_in:
                         with gzip.open(file_path_out, 'wb') as f_out:
                             shutil.copyfileobj(f_in, f_out, length=1024*1024)
                     block_blob_service.create_blob_from_path(
                         blob_container_name,
-                        _file.replace(".json", "") + "/" + _file + ".gz",
+                        _file.replace(".json", "") + "/" + output_file_name,
                         file_path_out,
                         content_settings=ContentSettings(
                             content_type='application/JSON')
