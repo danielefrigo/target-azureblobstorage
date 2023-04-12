@@ -16,7 +16,7 @@ import collections
 
 import pkg_resources
 from jsonschema.validators import Draft4Validator
-from jsonschema.exceptions import ValidationError
+# from jsonschema.exceptions import ValidationError
 import singer
 
 from azure.storage.blob import BlockBlobService, AppendBlobService, ContentSettings
@@ -49,8 +49,6 @@ def persist_lines(block_blob_service, blob_container_name, lines):
     schemas = {}
     key_properties = {}
     validators = {}
-
-    now = datetime.now().strftime('%Y%m%dT%H%M%S')
 
     parent_dir = os.path.join(USER_HOME, blob_container_name)
     # clean temp folder for local file creation
@@ -103,6 +101,7 @@ def persist_lines(block_blob_service, blob_container_name, lines):
             if not state['currently_syncing'] and os.path.exists(parent_dir):
                 time.sleep(1)
                 for _file in os.listdir(parent_dir):
+                    now = datetime.now().strftime('%Y%m%dT%H%M%S')
                     output_file_name = now + ".json.gz"
                     file_path_in = os.path.join(parent_dir, _file)
                     file_path_out = os.path.join(parent_dir, output_file_name)
