@@ -84,10 +84,7 @@ def persist_lines(block_blob_service, blob_container_name, lines):
             logger.debug('schema for this records stream {}'.format(schema))
             logger.debug('Validate record {}'.format(line_json))
             # Validate record
-            try:
-                validators[line_json['stream']].validate(line_json['record'])
-            except ValidationError as err:
-                logger.debug(err.message)
+            #validators[line_json['stream']].validate(line_json['record'])
 
             # If the record needs to be flattened, uncomment this line
             # flattened_record = flatten(o['record'])
