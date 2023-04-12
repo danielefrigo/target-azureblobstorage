@@ -16,6 +16,7 @@ import collections
 
 import pkg_resources
 from jsonschema.validators import Draft4Validator
+from jsonschema.exceptions import ValidationError
 import singer
 
 from azure.storage.blob import BlockBlobService, AppendBlobService, ContentSettings
@@ -83,7 +84,10 @@ def persist_lines(block_blob_service, blob_container_name, lines):
             logger.debug('schema for this records stream {}'.format(schema))
             logger.debug('Validate record {}'.format(line_json))
             # Validate record
-            validators[line_json['stream']].validate(line_json['record'])
+            try:
+                validators[line_json['stream']].validate(line_json['record'])
+            except ValidationError as err:
+                logger.debug(err.message)
 
             # If the record needs to be flattened, uncomment this line
             # flattened_record = flatten(o['record'])
