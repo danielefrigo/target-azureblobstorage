@@ -102,7 +102,7 @@ def persist_lines(block_blob_service, blob_container_name, lines):
             if not state['currently_syncing'] and os.path.exists(parent_dir):
                 time.sleep(1)
                 for _file in os.listdir(parent_dir):
-                    output_file_name = now + ".gz"
+                    output_file_name = now + ".json.gz"
                     file_path_in = os.path.join(parent_dir, _file)
                     file_path_out = os.path.join(parent_dir, output_file_name)
                     with open(file_path_in, 'rb') as f_in:
@@ -117,8 +117,15 @@ def persist_lines(block_blob_service, blob_container_name, lines):
                             content_type='application/JSON')
                     )
                     time.sleep(1)
-                    os.remove(file_path_in)
-                    os.remove(file_path_out)
+                    try:
+                        os.remove(file_path_in)
+                    except:
+                        logger.debug(f"unable to delete file {file_path_in}")
+                    time.sleep(1)
+                    try:
+                        os.remove(file_path_out)
+                    except:
+                        logger.debug(f"unable to delete file {file_path_out}")
                     time.sleep(1)
 
         elif t == 'SCHEMA':
