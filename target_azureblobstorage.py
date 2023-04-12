@@ -10,6 +10,7 @@ import json
 import threading
 import http.client
 import urllib
+import time
 from datetime import datetime
 import collections
 
@@ -53,7 +54,9 @@ def persist_lines(block_blob_service, blob_container_name, lines):
     parent_dir = os.path.join(USER_HOME, blob_container_name)
     # clean temp folder for local file creation
     shutil.rmtree(parent_dir, ignore_errors=True)
+    time.sleep(1)
     os.mkdir(parent_dir)
+    time.sleep(1)
 
     # Loop over lines from stdin
     for line in lines:
@@ -87,10 +90,8 @@ def persist_lines(block_blob_service, blob_container_name, lines):
             filename = line_json['stream'] + '.json'
             stream_path = os.path.join(parent_dir, filename)
             with open(stream_path, "a") as file_obj:
-                # todo usare json.dump al posto di dumps
-                #file_obj.write(json.dumps(line_json['record']) + ',\n')
-                #json.dump(line_json, file_obj)
-                file_obj.write(f'{line},\n')
+                # todo creare un buffer (dim da config) in cui accumulare le righe e scrivere solo quando il buffer è pieno
+                file_obj.write(json.dumps(line_json['record']) + ',\n')
 
             state = None
 
@@ -99,6 +100,7 @@ def persist_lines(block_blob_service, blob_container_name, lines):
             state = line_json['value']
 
             if not state['currently_syncing'] and os.path.exists(parent_dir):
+                time.sleep(1)
                 for _file in os.listdir(parent_dir):
                     output_file_name = now + ".gz"
                     file_path_in = os.path.join(parent_dir, _file)
@@ -106,6 +108,7 @@ def persist_lines(block_blob_service, blob_container_name, lines):
                     with open(file_path_in, 'rb') as f_in:
                         with gzip.open(file_path_out, 'wb') as f_out:
                             shutil.copyfileobj(f_in, f_out, length=1024*1024)
+                    time.sleep(1)
                     block_blob_service.create_blob_from_path(
                         blob_container_name,
                         _file.replace(".json", "") + "/" + output_file_name,
@@ -113,8 +116,10 @@ def persist_lines(block_blob_service, blob_container_name, lines):
                         content_settings=ContentSettings(
                             content_type='application/JSON')
                     )
+                    time.sleep(1)
                     os.remove(file_path_in)
                     os.remove(file_path_out)
+                    time.sleep(1)
 
         elif t == 'SCHEMA':
             if 'stream' not in line_json:
